@@ -5,6 +5,8 @@ class CoffeeCard extends StatelessWidget {
   final String model;
   final String status;
   final bool isOnline;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const CoffeeCard({
     super.key,
@@ -12,6 +14,8 @@ class CoffeeCard extends StatelessWidget {
     required this.model,
     required this.status,
     required this.isOnline,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -45,14 +49,26 @@ class CoffeeCard extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  model,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        model,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    _StatusBadge(status: status, isOnline: isOnline),
+                  ],
                 ),
               ],
             ),
           ),
-          _StatusBadge(status: status, isOnline: isOnline),
+          if (onEdit != null || onDelete != null)
+            _ActionMenu(onEdit: onEdit, onDelete: onDelete),
         ],
       ),
     );
@@ -94,7 +110,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: _color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
@@ -103,10 +119,36 @@ class _StatusBadge extends StatelessWidget {
         status,
         style: TextStyle(
           color: _color,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+}
+
+class _ActionMenu extends StatelessWidget {
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  const _ActionMenu({this.onEdit, this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (v) {
+        if (v == 'edit') onEdit?.call();
+        if (v == 'delete') onDelete?.call();
+      },
+      itemBuilder: (_) => [
+        if (onEdit != null)
+          const PopupMenuItem(value: 'edit', child: Text('Edit')),
+        if (onDelete != null)
+          const PopupMenuItem(
+            value: 'delete',
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+      ],
+      icon: const Icon(Icons.more_vert, color: Colors.grey),
     );
   }
 }

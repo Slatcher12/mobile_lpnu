@@ -1,13 +1,40 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/register_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(const CoffeeApp());
+import 'core/models/user.dart';
+import 'core/repositories/local/local_auth_repository.dart';
+import 'core/repositories/local/local_machine_repository.dart';
+import 'core/repositories/local/local_user_repository.dart';
+import 'core/repositories/local/user_store.dart';
+import 'di/app_dependencies.dart';
+import 'features/auth/login_screen.dart';
+import 'features/auth/register_screen.dart';
+import 'features/home/home_screen.dart';
+import 'features/profile/profile_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final store = UserStore(prefs);
+  final authRepo = LocalAuthRepository(prefs, store);
+  final currentUser = await authRepo.getCurrentUser();
+  final session = ValueNotifier<User?>(currentUser);
+
+  runApp(
+    AppDependencies(
+      authRepo: authRepo,
+      userRepo: LocalUserRepository(store),
+      machineRepo: LocalMachineRepository(prefs),
+      session: session,
+      child: CoffeeApp(startRoute: currentUser != null ? '/home' : '/login'),
+    ),
+  );
+}
 
 class CoffeeApp extends StatelessWidget {
-  const CoffeeApp({super.key});
+  final String startRoute;
+
+  const CoffeeApp({super.key, required this.startRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +61,7 @@ class CoffeeApp extends StatelessWidget {
           fillColor: Colors.white,
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: startRoute,
       routes: {
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
