@@ -6,6 +6,8 @@ class AppTextField extends StatelessWidget {
   final IconData icon;
   final bool obscure;
   final TextInputType keyboardType;
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
 
   const AppTextField({
     super.key,
@@ -14,13 +16,18 @@ class AppTextField extends StatelessWidget {
     required this.icon,
     this.obscure = false,
     this.keyboardType = TextInputType.text,
+    this.controller,
+    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
+      controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
