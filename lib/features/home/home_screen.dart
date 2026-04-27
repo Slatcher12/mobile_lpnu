@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _deps = AppDependencies.of(context);
     _deps.isOnline.addListener(_onConnectivity);
     _load();
-    if (_deps.isOnline.value) _deps.mqttService.connect();
+    _deps.mqttService.connect();
   }
 
   void _onConnectivity() {

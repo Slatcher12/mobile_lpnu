@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:mqtt_client/mqtt_browser_client.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -9,15 +9,16 @@ import '../../models/sensor_reading.dart';
 import '../mqtt_service.dart';
 
 class HiveMqService implements MqttService {
-  static const _broker = 'broker.hivemq.com';
-  static const _port = 1883;
+  static const _host = 'localhost';
+  static const _tcpPort = 1883;
+  static const _wsPort = 9001;
   static const _kTopics = [
     'smartcoffee/temperature',
     'smartcoffee/pressure',
     'smartcoffee/humidity',
   ];
 
-  late final MqttServerClient _client;
+  late final MqttClient _client;
   final _controller = StreamController<SensorReading>.broadcast();
   StreamSubscription<List<MqttReceivedMessage<MqttMessage>>>? _updatesSub;
 
@@ -26,13 +27,17 @@ class HiveMqService implements MqttService {
 
   HiveMqService() {
     final id = 'sc_${DateTime.now().millisecondsSinceEpoch}';
-    _client = MqttServerClient.withPort(_broker, id, _port);
+    if (kIsWeb) {
+      _client = MqttBrowserClient.withPort('ws://$_host', id, _wsPort);
+    } else {
+      _client = MqttServerClient.withPort(_host, id, _tcpPort);
+    }
     _client.logging(on: false);
     _client.keepAlivePeriod = 30;
-    _client.autoReconnect = true;
+    if (!kIsWeb) _client.autoReconnect = true;
     _client.onConnected = _onConnected;
     _client.onDisconnected = _onDisconnected;
-    _client.onAutoReconnected = _resubscribe;
+    if (!kIsWeb) _client.onAutoReconnected = _resubscribe;
   }
 
   void _onConnected() {
@@ -72,15 +77,13 @@ class HiveMqService implements MqttService {
   Future<void> connect() async {
     if (connected.value) return;
     _client.connectionMessage = MqttConnectMessage()
+        .withProtocolName('MQTT')
+        .withProtocolVersion(4)
         .withClientIdentifier(_client.clientIdentifier)
         .startClean()
         .withWillQos(MqttQos.atMostOnce);
     try {
       await _client.connect();
-    } on SocketException {
-      _client.disconnect();
-    } on NoConnectionException {
-      _client.disconnect();
     } catch (_) {
       _client.disconnect();
     }
