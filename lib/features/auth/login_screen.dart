@@ -28,16 +28,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    final deps = AppDependencies.of(context);
+
+    if (!deps.isOnline.value) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No internet — live sensor data will be unavailable'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
-    final deps = AppDependencies.of(context);
+
     final user = await deps.authRepo.login(
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
     );
+
     if (!mounted) return;
+
     if (user == null) {
       setState(() {
         _loading = false;
@@ -45,7 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+
     deps.session.value = user;
+    if (deps.isOnline.value) deps.mqttService.connect();
     Navigator.pushReplacementNamed(context, '/home');
   }
 
