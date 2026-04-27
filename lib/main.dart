@@ -6,6 +6,8 @@ import 'core/repositories/local/local_auth_repository.dart';
 import 'core/repositories/local/local_machine_repository.dart';
 import 'core/repositories/local/local_user_repository.dart';
 import 'core/repositories/local/user_store.dart';
+import 'core/services/impl/connectivity_service_impl.dart';
+import 'core/services/impl/hivemq_service.dart';
 import 'di/app_dependencies.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
@@ -14,18 +16,28 @@ import 'features/profile/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   final prefs = await SharedPreferences.getInstance();
   final store = UserStore(prefs);
   final authRepo = LocalAuthRepository(prefs, store);
   final currentUser = await authRepo.getCurrentUser();
   final session = ValueNotifier<User?>(currentUser);
 
+  final connectivityService = ConnectivityServiceImpl();
+  final isOnline = ValueNotifier<bool>(
+    await connectivityService.hasConnection(),
+  );
+  connectivityService.statusStream.listen((online) => isOnline.value = online);
+
   runApp(
     AppDependencies(
       authRepo: authRepo,
       userRepo: LocalUserRepository(store),
       machineRepo: LocalMachineRepository(prefs),
+      mqttService: HiveMqService(),
+      connectivityService: connectivityService,
       session: session,
+      isOnline: isOnline,
       child: CoffeeApp(startRoute: currentUser != null ? '/home' : '/login'),
     ),
   );

@@ -64,45 +64,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(color: Color(0xFF3E2723)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
     final deps = AppDependencies.of(context);
+    await deps.mqttService.disconnect();
     await deps.authRepo.logout();
     deps.session.value = null;
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
 
   Future<void> _deleteAccount() async {
-    final ok = await _showDeleteDialog();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'All your data will be removed. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
     if (ok != true || !mounted) return;
     final deps = AppDependencies.of(context);
     final id = deps.session.value!.id;
+    await deps.mqttService.disconnect();
     await deps.machineRepo.deleteByUserId(id);
     await deps.userRepo.delete(id);
     await deps.authRepo.logout();
     deps.session.value = null;
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
-
-  Future<bool?> _showDeleteDialog() => showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text('Delete Account'),
-      content: const Text(
-        'All your data will be removed. This cannot be undone.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {

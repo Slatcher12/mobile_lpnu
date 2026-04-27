@@ -6,7 +6,9 @@ import '../../di/app_dependencies.dart';
 import '../../widgets/coffee_card.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/stat_card.dart';
+import 'widgets/connectivity_banner.dart';
 import 'widgets/machine_dialog.dart';
+import 'widgets/sensor_panel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,21 +21,35 @@ class _HomeScreenState extends State<HomeScreen> {
   List<CoffeeMachine> _machines = [];
   bool _loading = true;
   bool _initialized = false;
+  late final AppDependencies _deps;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
+    _deps = AppDependencies.of(context);
+    _deps.isOnline.addListener(_onConnectivity);
     _load();
+    _deps.mqttService.connect();
+  }
+
+  void _onConnectivity() {
+    if (_deps.isOnline.value && !_deps.mqttService.connected.value) {
+      _deps.mqttService.connect();
+    }
+  }
+
+  @override
+  void dispose() {
+    _deps.isOnline.removeListener(_onConnectivity);
+    super.dispose();
   }
 
   Future<void> _load() async {
-    final id = AppDependencies.of(context).session.value?.id;
+    final id = _deps.session.value?.id;
     if (id == null) return;
-    final machines = await AppDependencies.of(
-      context,
-    ).machineRepo.getByUserId(id);
+    final machines = await _deps.machineRepo.getByUserId(id);
     if (!mounted) return;
     setState(() {
       _machines = machines;
@@ -47,15 +63,14 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (_) => const MachineDialog(),
     );
     if (result == null || !mounted) return;
-    final deps = AppDependencies.of(context);
     final machine = CoffeeMachine(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: deps.session.value!.id,
+      userId: _deps.session.value!.id,
       name: result.name,
       model: result.model,
       isOnline: true,
     );
-    await deps.machineRepo.add(machine);
+    await _deps.machineRepo.add(machine);
     setState(() => _machines = [..._machines, machine]);
   }
 
@@ -66,14 +81,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (result == null || !mounted) return;
     final updated = machine.copyWith(name: result.name, model: result.model);
-    await AppDependencies.of(context).machineRepo.update(updated);
+    await _deps.machineRepo.update(updated);
     setState(() {
       _machines = [for (final m in _machines) m.id == updated.id ? updated : m];
     });
   }
 
   Future<void> _delete(String id) async {
-    await AppDependencies.of(context).machineRepo.delete(id);
+    await _deps.machineRepo.delete(id);
     setState(() => _machines = _machines.where((m) => m.id != id).toList());
   }
 
@@ -81,11 +96,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(context),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF3E2723)),
-            )
-          : _buildBody(),
+      body: Column(
+        children: [
+          const ConnectivityBanner(),
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF3E2723)),
+                  )
+                : _buildBody(),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _add,
         backgroundColor: const Color(0xFF3E2723),
@@ -99,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppBar(
       backgroundColor: const Color(0xFF3E2723),
       title: ValueListenableBuilder<User?>(
-        valueListenable: AppDependencies.of(context).session,
+        valueListenable: _deps.session,
         builder: (_, user, _) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -141,6 +163,10 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _StatsRow(count: _machines.length),
+          const SizedBox(height: 24),
+          const SectionHeader(title: 'Live Sensors'),
+          const SizedBox(height: 8),
+          const SensorPanel(),
           const SizedBox(height: 24),
           SectionHeader(
             title: 'My Machines',
@@ -195,19 +221,19 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48),
+        padding: const EdgeInsets.symmetric(vertical: 32),
         child: Column(
           children: [
-            Icon(Icons.coffee_maker, size: 64, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
+            Icon(Icons.coffee_maker, size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
             Text(
               'No machines yet',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
             ),
             const SizedBox(height: 4),
             Text(
               'Tap + to add your first machine',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
             ),
           ],
         ),
