@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'core/models/user.dart';
-import 'core/repositories/local/local_auth_repository.dart';
 import 'core/repositories/local/local_machine_repository.dart';
-import 'core/repositories/local/local_user_repository.dart';
 import 'core/repositories/local/user_store.dart';
+import 'core/repositories/remote/api_client.dart';
+import 'core/repositories/remote/remote_auth_repository.dart';
+import 'core/repositories/remote/remote_machine_repository.dart';
+import 'core/repositories/remote/remote_user_repository.dart';
 import 'core/services/impl/connectivity_service_impl.dart';
 import 'core/services/impl/hivemq_service.dart';
 import 'di/app_dependencies.dart';
@@ -19,9 +20,11 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final store = UserStore(prefs);
-  final authRepo = LocalAuthRepository(prefs, store);
+  final client = ApiClient();
+
+  final authRepo = RemoteAuthRepository(client, prefs, store);
   final currentUser = await authRepo.getCurrentUser();
-  final session = ValueNotifier<User?>(currentUser);
+  final session = ValueNotifier(currentUser);
 
   final connectivityService = ConnectivityServiceImpl();
   final isOnline = ValueNotifier<bool>(
@@ -32,8 +35,10 @@ void main() async {
   runApp(
     AppDependencies(
       authRepo: authRepo,
-      userRepo: LocalUserRepository(store),
-      machineRepo: LocalMachineRepository(prefs),
+      userRepo: RemoteUserRepository(client, store),
+      machineRepo: isOnline.value
+          ? RemoteMachineRepository(client, prefs)
+          : LocalMachineRepository(prefs),
       mqttService: HiveMqService(),
       connectivityService: connectivityService,
       session: session,
@@ -45,7 +50,6 @@ void main() async {
 
 class CoffeeApp extends StatelessWidget {
   final String startRoute;
-
   const CoffeeApp({super.key, required this.startRoute});
 
   @override

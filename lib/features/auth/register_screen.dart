@@ -4,6 +4,7 @@ import '../../core/validators/validators.dart';
 import '../../di/app_dependencies.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import 'widgets/auth_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -84,9 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Join Smart Coffee today',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
                 AppTextField(
@@ -121,9 +120,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.lock_outline,
                   obscure: true,
                   controller: _confirmCtrl,
-                  validator: (_) => Validators.confirmPassword(_passCtrl.text)(
-                    _confirmCtrl.text,
-                  ),
+                  validator: (_) => Validators.confirmPassword(
+                    _passCtrl.text,
+                  )(_confirmCtrl.text),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
@@ -138,34 +137,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       )
                     : AppButton(label: 'Create Account', onPressed: _submit),
                 const SizedBox(height: 24),
-                _LoginLink(),
+                const LoginLink(),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LoginLink extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Already have an account? '),
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Text(
-            'Sign In',
-            style: TextStyle(
-              color: Color(0xFF3E2723),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

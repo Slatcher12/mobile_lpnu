@@ -4,6 +4,7 @@ import '../../core/validators/validators.dart';
 import '../../di/app_dependencies.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
+import 'widgets/auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -81,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                const _Logo(),
+                const LoginLogo(),
                 const SizedBox(height: 48),
                 AppTextField(
                   label: 'Email',
@@ -109,70 +110,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? const CircularProgressIndicator(color: Color(0xFF3E2723))
                     : AppButton(label: 'Sign In', onPressed: _submit),
                 const SizedBox(height: 24),
-                _RegisterLink(),
+                const RegisterLink(),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _Logo extends StatelessWidget {
-  const _Logo();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF3E2723),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Icon(Icons.coffee, size: 44, color: Color(0xFFFF8F00)),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Smart Coffee',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF3E2723),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Manage your brews',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-        ),
-      ],
-    );
-  }
-}
-
-class _RegisterLink extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text("Don't have an account? "),
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/register'),
-          child: const Text(
-            'Sign Up',
-            style: TextStyle(
-              color: Color(0xFF3E2723),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
