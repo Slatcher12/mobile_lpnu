@@ -10,11 +10,11 @@ CONFIG = {
     'listeners': {
         'default': {
             'type': 'tcp',
-            'bind': 'localhost:1883',
+            'bind': '127.0.0.1:1883',
         },
         'ws': {
             'type': 'ws',
-            'bind': 'localhost:9001',
+            'bind': '127.0.0.1:9001',
         },
     },
     'auth': {

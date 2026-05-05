@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/sensor_reading.dart';
 import '../../../di/app_dependencies.dart';
+import 'sensor_tile.dart';
 
 class SensorPanel extends StatefulWidget {
   const SensorPanel({super.key});
@@ -14,19 +15,19 @@ class SensorPanel extends StatefulWidget {
 
 class _SensorPanelState extends State<SensorPanel> {
   static const _configs = [
-    _TopicConfig(
+    TopicConfig(
       topic: 'smartcoffee/temperature',
       label: 'Temperature',
       unit: '°C',
       icon: Icons.thermostat,
     ),
-    _TopicConfig(
+    TopicConfig(
       topic: 'smartcoffee/pressure',
       label: 'Pressure',
       unit: 'bar',
       icon: Icons.speed,
     ),
-    _TopicConfig(
+    TopicConfig(
       topic: 'smartcoffee/humidity',
       label: 'Humidity',
       unit: '%',
@@ -67,7 +68,7 @@ class _SensorPanelState extends State<SensorPanel> {
             children: [
               for (final c in _configs) ...[
                 Expanded(
-                  child: _SensorTile(config: c, value: _values[c.topic]),
+                  child: SensorTile(config: c, value: _values[c.topic]),
                 ),
                 if (c != _configs.last) const SizedBox(width: 10),
               ],
@@ -106,59 +107,4 @@ class _MqttStatusChip extends StatelessWidget {
       ],
     );
   }
-}
-
-class _SensorTile extends StatelessWidget {
-  final _TopicConfig config;
-  final String? value;
-  const _SensorTile({required this.config, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(config.icon, color: const Color(0xFF3E2723), size: 22),
-          const SizedBox(height: 6),
-          Text(
-            value != null ? '${value!} ${config.unit}' : '—',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: Color(0xFF3E2723),
-            ),
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            config.label,
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopicConfig {
-  final String topic;
-  final String label;
-  final String unit;
-  final IconData icon;
-
-  const _TopicConfig({
-    required this.topic,
-    required this.label,
-    required this.unit,
-    required this.icon,
-  });
 }
