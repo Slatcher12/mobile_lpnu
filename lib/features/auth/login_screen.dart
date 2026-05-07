@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/validators/validators.dart';
+import '../../cubits/auth_cubit.dart';
+import '../../cubits/sensor_cubit.dart';
 import '../../di/app_dependencies.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
@@ -17,8 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _loading = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -27,11 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final deps = AppDependencies.of(context);
-
-    if (!deps.isOnline.value) {
+    if (!AppDependencies.of(context).isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No internet — live sensor data will be unavailable'),
@@ -40,82 +39,76 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    final user = await deps.authRepo.login(
+    context.read<AuthCubit>().login(
       email: _emailCtrl.text.trim(),
       password: _passwordCtrl.text,
     );
-
-    if (!mounted) return;
-
-    if (user == null) {
-      setState(() {
-        _loading = false;
-        _error = 'Invalid email or password';
-      });
-      return;
-    }
-
-    deps.session.value = user;
-    if (deps.isOnline.value) deps.mqttService.connect();
-    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    return Scaffold(
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: width > 600 ? width * 0.2 : 24,
-              vertical: 32,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 40),
-                const LoginLogo(),
-                const SizedBox(height: 48),
-                AppTextField(
-                  label: 'Email',
-                  hint: 'you@example.com',
-                  icon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  controller: _emailCtrl,
-                  validator: Validators.email,
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+          context.read<SensorCubit>().connect();
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      },
+      builder: (context, state) {
+        final loading = state is AuthLoading;
+        final error = state is AuthError ? state.message : null;
+        return Scaffold(
+          body: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width > 600 ? width * 0.2 : 24,
+                  vertical: 32,
                 ),
-                const SizedBox(height: 16),
-                AppTextField(
-                  label: 'Password',
-                  hint: '••••••••',
-                  icon: Icons.lock_outline,
-                  obscure: true,
-                  controller: _passwordCtrl,
-                  validator: Validators.password,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+                    const LoginLogo(),
+                    const SizedBox(height: 48),
+                    AppTextField(
+                      label: 'Email',
+                      hint: 'you@example.com',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      controller: _emailCtrl,
+                      validator: Validators.email,
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      label: 'Password',
+                      hint: '••••••••',
+                      icon: Icons.lock_outline,
+                      obscure: true,
+                      controller: _passwordCtrl,
+                      validator: Validators.password,
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(error, style: const TextStyle(color: Colors.red)),
+                    ],
+                    const SizedBox(height: 28),
+                    loading
+                        ? const CircularProgressIndicator(
+                            color: Color(0xFF3E2723),
+                          )
+                        : AppButton(label: 'Sign In', onPressed: _submit),
+                    const SizedBox(height: 24),
+                    const RegisterLink(),
+                  ],
                 ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                ],
-                const SizedBox(height: 28),
-                _loading
-                    ? const CircularProgressIndicator(color: Color(0xFF3E2723))
-                    : AppButton(label: 'Sign In', onPressed: _submit),
-                const SizedBox(height: 24),
-                const RegisterLink(),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

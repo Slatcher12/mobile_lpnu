@@ -62,14 +62,10 @@ class HomeBottomNav extends StatelessWidget {
 }
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final ValueNotifier<User?> session;
+  final User? user;
   final VoidCallback onProfileTap;
 
-  const HomeAppBar({
-    super.key,
-    required this.session,
-    required this.onProfileTap,
-  });
+  const HomeAppBar({super.key, required this.user, required this.onProfileTap});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -78,21 +74,18 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: const Color(0xFF3E2723),
-      title: ValueListenableBuilder<User?>(
-        valueListenable: session,
-        builder: (_, user, _) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hello, ${user?.name ?? ''} ☕',
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            const Text(
-              'Smart Coffee',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
-        ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Hello, ${user?.name ?? ''} ☕',
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const Text(
+            'Smart Coffee',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
       ),
       actions: [
         GestureDetector(

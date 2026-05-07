@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mobile_lpnu/core/models/sensor_reading.dart';
-import 'package:mobile_lpnu/core/models/user.dart';
 import 'package:mobile_lpnu/core/repositories/local/local_auth_repository.dart';
 import 'package:mobile_lpnu/core/repositories/local/local_machine_repository.dart';
 import 'package:mobile_lpnu/core/repositories/local/local_user_repository.dart';
 import 'package:mobile_lpnu/core/repositories/local/user_store.dart';
-import 'package:mobile_lpnu/core/services/connectivity_service.dart';
+import 'package:mobile_lpnu/core/repositories/machine_repository.dart';
+import 'package:mobile_lpnu/core/repositories/user_repository.dart';
 import 'package:mobile_lpnu/core/services/mqtt_service.dart';
+import 'package:mobile_lpnu/cubits/auth_cubit.dart';
+import 'package:mobile_lpnu/cubits/sensor_cubit.dart';
 import 'package:mobile_lpnu/di/app_dependencies.dart';
 import 'package:mobile_lpnu/main.dart';
 
@@ -24,26 +27,33 @@ class _FakeMqttService implements MqttService {
   Future<void> disconnect() async {}
 }
 
-class _FakeConnectivityService implements ConnectivityService {
-  @override
-  Future<bool> hasConnection() async => true;
-  @override
-  Stream<bool> get statusStream => const Stream.empty();
-}
-
-Future<Widget> _buildApp({User? user}) async {
+Future<Widget> _buildApp() async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   final store = UserStore(prefs);
-  return AppDependencies(
-    authRepo: LocalAuthRepository(prefs, store),
-    userRepo: LocalUserRepository(store),
-    machineRepo: LocalMachineRepository(prefs),
-    mqttService: _FakeMqttService(),
-    connectivityService: _FakeConnectivityService(),
-    session: ValueNotifier<User?>(user),
-    isOnline: ValueNotifier<bool>(true),
-    child: const CoffeeApp(startRoute: '/login'),
+  final authRepo = LocalAuthRepository(prefs, store);
+  final userRepo = LocalUserRepository(store);
+  final machineRepo = LocalMachineRepository(prefs);
+  final mqtt = _FakeMqttService();
+
+  return MultiRepositoryProvider(
+    providers: [
+      RepositoryProvider<UserRepository>.value(value: userRepo),
+      RepositoryProvider<MachineRepository>.value(value: machineRepo),
+    ],
+    child: MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              AuthCubit(authRepo, userRepo, machineRepo, mqtt)..init(null),
+        ),
+        BlocProvider(create: (_) => SensorCubit(mqtt)),
+      ],
+      child: AppDependencies(
+        isOnline: ValueNotifier<bool>(true),
+        child: const CoffeeApp(startRoute: '/login'),
+      ),
+    ),
   );
 }
 
