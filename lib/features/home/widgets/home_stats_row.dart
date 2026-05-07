@@ -64,8 +64,14 @@ class HomeBottomNav extends StatelessWidget {
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final User? user;
   final VoidCallback onProfileTap;
+  final VoidCallback onTorchToggle;
 
-  const HomeAppBar({super.key, required this.user, required this.onProfileTap});
+  const HomeAppBar({
+    super.key,
+    required this.user,
+    required this.onProfileTap,
+    required this.onTorchToggle,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -81,10 +87,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             'Hello, ${user?.name ?? ''} ☕',
             style: const TextStyle(color: Colors.white, fontSize: 16),
           ),
-          const Text(
-            'Smart Coffee',
-            style: TextStyle(color: Colors.white70, fontSize: 12),
-          ),
+          _SecretTitle(onActivate: onTorchToggle),
         ],
       ),
       actions: [
@@ -102,4 +105,33 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       ],
     );
   }
+}
+
+class _SecretTitle extends StatefulWidget {
+  final VoidCallback onActivate;
+  const _SecretTitle({required this.onActivate});
+
+  @override
+  State<_SecretTitle> createState() => _SecretTitleState();
+}
+
+class _SecretTitleState extends State<_SecretTitle> {
+  int _taps = 0;
+
+  void _onTap() {
+    _taps++;
+    if (_taps >= 5) {
+      _taps = 0;
+      widget.onActivate();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: _onTap,
+    child: const Text(
+      'Smart Coffee',
+      style: TextStyle(color: Colors.white70, fontSize: 12),
+    ),
+  );
 }

@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:mqtt_client/mqtt_browser_client.dart';
 import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'mqtt_client_factory_web.dart'
+    if (dart.library.io) 'mqtt_client_factory_io.dart';
 
 import '../../models/sensor_reading.dart';
 import '../mqtt_service.dart';
@@ -27,11 +27,7 @@ class HiveMqService implements MqttService {
 
   HiveMqService() {
     final id = 'sc_${DateTime.now().millisecondsSinceEpoch}';
-    if (kIsWeb) {
-      _client = MqttBrowserClient.withPort('ws://$_host', id, _wsPort);
-    } else {
-      _client = MqttServerClient.withPort(_host, id, _tcpPort);
-    }
+    _client = createMqttClient(_host, id, _tcpPort, _wsPort);
     _client.logging(on: false);
     _client.keepAlivePeriod = 30;
     if (!kIsWeb) _client.autoReconnect = true;
