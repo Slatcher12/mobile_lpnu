@@ -11,7 +11,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const _base = 'http://localhost:8080';
+  static const _base = 'http://192.168.0.100:8080';
   String? _token;
 
   void setToken(String? token) => _token = token;

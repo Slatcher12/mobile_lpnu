@@ -62,7 +62,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(
       user != null
           ? AuthAuthenticated(user)
-          : AuthError('Email is already registered'),
+          : AuthError('Registration failed. Check connection or try another email.'),
     );
   }
 

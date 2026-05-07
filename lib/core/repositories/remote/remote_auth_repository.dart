@@ -46,7 +46,7 @@ class RemoteAuthRepository implements AuthRepository {
       });
       return await _handleResponse(data, password);
     } catch (_) {
-      return null;
+      return _localRegister(name: name, email: email, password: password);
     }
   }
 
@@ -59,8 +59,42 @@ class RemoteAuthRepository implements AuthRepository {
       });
       return await _handleResponse(data, password);
     } catch (_) {
+      return _localLogin(email: email, password: password);
+    }
+  }
+
+  Future<User?> _localLogin({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final user = _store.getAll().firstWhere(
+        (u) => u.email == email && u.password == password,
+      );
+      await _prefs.setString(_currentKey, user.id);
+      return user;
+    } catch (_) {
       return null;
     }
+  }
+
+  Future<User?> _localRegister({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final users = _store.getAll();
+    if (users.any((u) => u.email == email)) return null;
+    final user = User(
+      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      email: email,
+      password: password,
+    );
+    users.add(user);
+    await _store.saveAll(users);
+    await _prefs.setString(_currentKey, user.id);
+    return user;
   }
 
   @override
